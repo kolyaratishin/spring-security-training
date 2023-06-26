@@ -10,10 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
@@ -54,5 +53,17 @@ public class UserController {
             return ResponseEntity.ok(userResponse);
         }
         throw new RuntimeException("Such user with username=" + userDto.getUsername() + " already exists");
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UserResponse>> getAll() {
+        return ResponseEntity.ok(userService.getAll().stream()
+                .map(user ->
+                        UserResponse.builder()
+                                .id(user.getId())
+                                .username(user.getUsername())
+                                .role(user.getRole())
+                                .build()
+                ).toList());
     }
 }
