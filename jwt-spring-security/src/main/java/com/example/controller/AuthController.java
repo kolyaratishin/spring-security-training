@@ -16,7 +16,7 @@ public class AuthController {
         return userService.addUser(user);
     }
 
-    @GetMapping("/token")
+    @PostMapping("/token")
     public String generateToken(@RequestBody User user){
         return userService.generateToken(user.getUsername());
     }
