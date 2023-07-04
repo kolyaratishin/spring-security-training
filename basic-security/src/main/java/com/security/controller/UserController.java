@@ -43,7 +43,7 @@ public class UserController {
     }
 
     @PostMapping("/registration")
-    public ResponseEntity<UserResponse> registration(@RequestBody UserDto userDto) {
+    public ResponseEntity<?> registration(@RequestBody UserDto userDto) {
         if (userService.getUserByUsername(userDto.getUsername()).isEmpty()) {
             User registeredUser = userService.register(userDto);
             UserResponse userResponse = new UserResponse();
@@ -52,7 +52,7 @@ public class UserController {
             userResponse.setRole(registeredUser.getRole());
             return ResponseEntity.ok(userResponse);
         }
-        throw new RuntimeException("Such user with username=" + userDto.getUsername() + " already exists");
+        return new ResponseEntity<>("Such user with username=" + userDto.getUsername() + " already exists", HttpStatus.FORBIDDEN);
     }
 
     @GetMapping
