@@ -1,5 +1,6 @@
 package com.keyclock.controller;
 
+import com.keyclock.controller.dto.UserDto;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,7 +27,7 @@ public class DemoController {
     }
 
     @GetMapping("/users")
-    public List<UserRepresentation> getUsers(){
+    public List<UserDto> getUsers(){
         Keycloak keycloak = Keycloak.getInstance(
                 "http://localhost:8080",
                 "master",
@@ -34,6 +35,12 @@ public class DemoController {
                 "admin",
                 "admin-cli");
         var users = keycloak.realm("Kolya").users().list();
-        return users;
+        return users.stream()
+                .map(userRepresentation -> new UserDto(
+                        userRepresentation.getUsername(),
+                        userRepresentation.getEmail(),
+                        ""
+                ))
+                .toList();
     }
 }
