@@ -1,6 +1,6 @@
 package com.example.controller;
 
-import com.example.model.User;
+import com.example.controller.dto.UserDto;
 import com.example.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +16,9 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public List<UserDto> getAllUsers() {
+        return userService.getAllUsers().stream()
+                .map(user -> new UserDto(user.getUsername(), user.getRole()))
+                .toList();
     }
 }
