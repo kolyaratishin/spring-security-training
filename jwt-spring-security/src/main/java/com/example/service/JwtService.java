@@ -3,23 +3,24 @@ package com.example.service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.*;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
-    private final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
-
     private UserDetailsService userDetailsService;
 
     public boolean validateToken(String token) {
@@ -38,12 +39,62 @@ public class JwtService {
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+                .signWith(getSignKey(), SignatureAlgorithm.RS256).compact();
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
-        return Keys.hmacShaKeyFor(keyBytes);
+        String privateKeyFilePath = "C:\\D_disk\\spring-security-training\\spring-security-training\\jwt-spring-security\\private-key.txt";
+        try {
+            byte[] privateKeyData = getKeyData(privateKeyFilePath, true);
+
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyData);
+            return keyFactory.generatePrivate(keySpec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new RuntimeException("Failed to read private key", e);
+        }
+    }
+
+    private Key getPublicKey() {
+        String privateKeyFilePath = "C:\\D_disk\\spring-security-training\\spring-security-training\\jwt-spring-security\\public-key.txt";
+        try {
+            byte[] privateKeyData = getKeyData(privateKeyFilePath, false);
+
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(privateKeyData);
+            return keyFactory.generatePublic(keySpec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new RuntimeException("Failed to read public key", e);
+        }
+    }
+
+    private byte[] getKeyData(String privateKeyFilePath, boolean isPrivateKey) throws IOException {
+        byte[] publicKeyBytes = Files.readAllBytes(Paths.get(privateKeyFilePath));
+        String header = getHeader(isPrivateKey);
+        String footer = getFooter(isPrivateKey);
+        String publicKeyPem = new String(publicKeyBytes)
+                .replaceAll("\\n", "")
+                .replaceAll("\\r", "")
+                .replace(header, "")
+                .replace(footer, "");
+
+        return Base64.getDecoder().decode(publicKeyPem);
+    }
+
+    private String getHeader(boolean isPrivateKey) {
+        if (isPrivateKey) {
+            return "-----BEGIN PRIVATE KEY-----";
+        } else {
+            return "-----BEGIN PUBLIC KEY-----";
+        }
+    }
+
+    private String getFooter(boolean isPrivateKey) {
+        if (isPrivateKey) {
+            return "-----END PRIVATE KEY-----";
+        } else {
+            return "-----END PUBLIC KEY-----";
+        }
     }
 
     public String extractUsername(String token) {
@@ -56,7 +107,7 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token).getBody();
+        return Jwts.parserBuilder().setSigningKey(getPublicKey()).build().parseClaimsJws(token).getBody();
     }
 
     private Boolean isTokenExpired(String token) {
