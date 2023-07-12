@@ -1,7 +1,13 @@
 package com.example.controller;
 
+import com.example.config.CustomUserDetails;
 import com.example.controller.dto.UserDto;
+import com.example.controller.request.LoginRequest;
+import com.example.controller.response.JwtResponse;
+import com.example.model.RefreshToken;
 import com.example.model.User;
+import com.example.service.JwtService;
+import com.example.service.RefreshTokenService;
 import com.example.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -9,7 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/jwt")
@@ -17,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
+    private final JwtService jwtService;
 
     @PostMapping("/registration")
     public ResponseEntity<?> addNewUser(@RequestBody User user) {
@@ -31,12 +44,23 @@ public class AuthController {
     }
 
     @PostMapping("/token")
-    public String generateToken(@RequestBody User user) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
-        if (authentication.isAuthenticated()) {
-            return userService.generateToken(user.getUsername());
-        }
-        throw new RuntimeException("User invalid access");
+    public ResponseEntity<?> generateToken(@RequestBody LoginRequest loginRequest) {
+        Authentication authentication = authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+
+        String jwt = jwtService.generateToken(userDetails.getUsername());
+
+        List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+                .toList();
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
+
+        return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken(), userDetails.getId(),
+                userDetails.getUsername(), roles));
     }
 
     @GetMapping("/validation")
