@@ -2,11 +2,11 @@ package com.example.service;
 
 import com.example.exception.TokenRefreshException;
 import com.example.model.RefreshToken;
+import com.example.model.User;
 import com.example.repository.RefreshTokenRepository;
 import com.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -28,6 +28,7 @@ public class RefreshTokenService {
     }
 
     public RefreshToken createRefreshToken(Long userId) {
+        deleteByUserId(userId);
         RefreshToken refreshToken = new RefreshToken();
 
         refreshToken.setUser(userRepository.findById(userId).get());
@@ -47,8 +48,10 @@ public class RefreshTokenService {
         return token;
     }
 
-    @Transactional
-    public int deleteByUserId(Long userId) {
-        return refreshTokenRepository.deleteByUser(userRepository.findById(userId).get());
+
+    public void deleteByUserId(Long userId) {
+        User user = userRepository.findById(userId).get();
+        refreshTokenRepository.findByUser(user)
+                .ifPresent(refreshToken -> refreshTokenRepository.deleteById(refreshToken.getId()));
     }
 }
