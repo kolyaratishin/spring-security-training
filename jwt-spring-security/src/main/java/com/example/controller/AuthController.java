@@ -3,7 +3,10 @@ package com.example.controller;
 import com.example.config.CustomUserDetails;
 import com.example.controller.dto.UserDto;
 import com.example.controller.request.LoginRequest;
+import com.example.controller.request.TokenRefreshRequest;
 import com.example.controller.response.JwtResponse;
+import com.example.controller.response.TokenRefreshResponse;
+import com.example.exception.TokenRefreshException;
 import com.example.model.RefreshToken;
 import com.example.model.User;
 import com.example.service.JwtService;
@@ -67,5 +70,20 @@ public class AuthController {
     public String validateToken(@RequestParam("token") String token) {
         userService.validateToken(token);
         return "Token is valid";
+    }
+
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshtoken(@RequestBody TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtService.generateToken(user.getUsername());
+                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
+                })
+                .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
+                        "Refresh token is not in database!"));
     }
 }
