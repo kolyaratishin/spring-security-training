@@ -37,7 +37,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/jwt/registration",
                                 "/jwt/token",
-                                "/jwt/validation")
+                                "/jwt/validation",
+                                "jwt/refreshtoken")
                         .permitAll()
                         .anyRequest()
                         .authenticated()

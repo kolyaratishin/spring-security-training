@@ -7,6 +7,7 @@ import com.example.repository.RefreshTokenRepository;
 import com.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -15,7 +16,7 @@ import java.util.UUID;
 @Service
 public class RefreshTokenService {
 
-    private final Long refreshTokenDurationMs = 1000 * 60 * 60 * 24 * 30L;
+    private final Long refreshTokenDurationMs = 1000 * 60L;
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
@@ -39,6 +40,7 @@ public class RefreshTokenService {
         return refreshToken;
     }
 
+    @Transactional
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
             refreshTokenRepository.delete(token);

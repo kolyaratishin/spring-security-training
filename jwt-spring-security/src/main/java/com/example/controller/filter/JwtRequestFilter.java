@@ -26,7 +26,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     private JwtAuthenticationEntryPoint entryPoint;
     private final Set<String> urisToSkip = Set.of("/jwt/registration",
             "/jwt/token",
-            "/jwt/validation");
+            "/jwt/validation",
+            "/jwt/refreshtoken");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
